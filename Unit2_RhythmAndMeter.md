@@ -15,7 +15,7 @@
 `Group 5`: Ed Sheeran, "Shape of You"  
 
 ## Week 6 – Microtiming and Groove
-[Companion Site](microtimingDeviations.html)
+[Companion Site](microtimingDeviations.html)  
 Composition week
 
 ## Recommended Readings
