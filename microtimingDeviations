@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Microtiming Playground</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+  :root{
+    --ink:#111111;
+    --paper:#ffffff;
+    --page:#e8e8e8;
+    --line:#d4d4d4;
+    --line-soft:#eeeeee;
+    --gray-mid:#7a7a7a;
+    --gray-light:#bdbdbd;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--page);
+    padding:32px 16px 60px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    color:var(--ink);
+  }
+  #root{
+    background:var(--paper);
+    padding:32px 28px 36px;
+    border:1px solid var(--line);
+    max-width:680px;
+    margin:0 auto;
+  }
+  h1{
+    font-size:20px;
+    font-weight:700;
+    margin:0 0 4px;
+    letter-spacing:0.1px;
+  }
+  .sub{
+    font-size:13px;
+    color:var(--gray-mid);
+    margin:0 0 22px;
+    line-height:1.5;
+    max-width:56ch;
+  }
+  .global-controls{
+    display:flex;
+    align-items:center;
+    gap:20px;
+    margin-bottom:28px;
+    padding-bottom:22px;
+    border-bottom:1px solid var(--line);
+    font-family: 'SF Mono','Menlo',monospace;
+    font-size:12px;
+    color:var(--gray-mid);
+    flex-wrap:wrap;
+  }
+  .tempo-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    flex:1;
+    min-width:180px;
+  }
+  .tempo-row input[type=range]{
+    flex:1;
+    accent-color:var(--ink);
+  }
+  .loop-toggle{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    cursor:pointer;
+    user-select:none;
+  }
+  .loop-toggle input{accent-color:var(--ink);}
+  .row{
+    margin-bottom:24px;
+    padding-bottom:22px;
+    border-bottom:1px solid var(--line);
+  }
+  .row:last-child{border-bottom:none;}
+  .row-head{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    margin-bottom:14px;
+    flex-wrap:wrap;
+  }
+  .play-btn{
+    width:34px;height:34px;
+    border-radius:50%;
+    border:1.5px solid var(--ink);
+    background:transparent;
+    cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+    transition:background 0.15s, transform 0.1s;
+  }
+  .play-btn:hover{background:rgba(0,0,0,0.06);}
+  .play-btn:active{transform:scale(0.94);}
+  .play-btn svg{width:12px;height:12px;}
+  .row-label{
+    font-size:15px;
+    font-weight:700;
+  }
+  .row-desc{
+    font-size:12px;
+    color:var(--gray-mid);
+    font-weight:400;
+    margin-left:2px;
+  }
+  .sound-select{
+    margin-left:auto;
+    font-family:'SF Mono','Menlo',monospace;
+    font-size:11px;
+    color:var(--ink);
+    background:var(--line-soft);
+    border:1px solid var(--line);
+    border-radius:4px;
+    padding:5px 8px;
+    cursor:pointer;
+  }
+  .track{
+    position:relative;
+    height:52px;
+    margin-left:46px;
+    margin-bottom:10px;
+  }
+  .baseline{
+    position:absolute;
+    left:0;right:0;top:26px;
+    height:1px;
+    background:var(--line);
+  }
+  .dot{
+    position:absolute;
+    top:12px;
+    width:26px;height:26px;
+    border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'SF Mono','Menlo',monospace;
+    font-size:10px;
+    transform:translateX(-50%);
+    transition:transform 0.08s ease-out, box-shadow 0.08s ease-out;
+    border:1.5px solid var(--ink);
+  }
+  .dot.hit{
+    transform:translateX(-50%) scale(1.35);
+    box-shadow:0 0 0 4px rgba(0,0,0,0.08);
+  }
+  .editor{
+    margin-left:46px;
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    gap:6px;
+  }
+  .ioi-field{
+    display:flex;
+    align-items:center;
+    gap:2px;
+    background:var(--line-soft);
+    border:1px solid var(--line);
+    border-radius:6px;
+    padding:2px 2px 2px 8px;
+  }
+  .ioi-field input{
+    width:38px;
+    border:none;
+    background:transparent;
+    font-family:'SF Mono','Menlo',monospace;
+    font-size:11.5px;
+    color:var(--ink);
+    padding:4px 0;
+    text-align:right;
+  }
+  .ioi-field input:focus{outline:none;}
+  .ioi-field button{
+    width:18px;height:18px;
+    border:none;
+    background:transparent;
+    color:var(--gray-mid);
+    cursor:pointer;
+    font-size:13px;
+    line-height:1;
+    border-radius:4px;
+  }
+  .ioi-field button:hover{background:rgba(0,0,0,0.1); color:var(--ink);}
+  .add-note{
+    width:26px;height:26px;
+    border-radius:50%;
+    border:1px dashed var(--gray-light);
+    background:transparent;
+    color:var(--gray-mid);
+    cursor:pointer;
+    font-size:14px;
+    line-height:1;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .add-note:hover{border-color:var(--ink); color:var(--ink);}
+  .reset-row{
+    font-family:'SF Mono','Menlo',monospace;
+    font-size:10.5px;
+    color:var(--gray-mid);
+    background:none;
+    border:none;
+    cursor:pointer;
+    margin-left:4px;
+    text-decoration:underline;
+    text-underline-offset:2px;
+  }
+  .reset-row:hover{color:var(--ink);}
+  footer{
+    margin-top:6px;
+    font-size:11.5px;
+    color:var(--gray-mid);
+    line-height:1.5;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+(function(){
+  const root = document.getElementById('root');
+
+  // grayscale fill/text per row, distinguishable by value not hue
+  const defaults = {
+    mech:  { label:'Mechanical',   desc:'quantized', fill:'#111111', text:'#ffffff', sound:'wood',  iois:[1,.5,.5,1,.5] },
+    swing: { label:'Slight swing', desc:'nudged',    fill:'#6e6e6e', text:'#ffffff', sound:'wood',  iois:[1,.6,.4,1,.6] },
+    expr:  { label:'Expressive',   desc:'rubato',    fill:'#bdbdbd', text:'#111111', sound:'wood',  iois:[1.3,.3,.4,1.2,.3] },
+  };
+  const order = ['mech','swing','expr'];
+  const state = {};
+  order.forEach(k => state[k] = { ...defaults[k], iois:[...defaults[k].iois] });
+  const playing = {};
+
+  const soundOptions = [
+    { value:'wood',   label:'Wood block' },
+    { value:'kick',    label:'Bass drum' },
+    { value:'shaker', label:'Shaker' },
+  ];
+
+  root.innerHTML = `
+    <h1>Three microtimings, same rhythmic shape</h1>
+    <p class="sub">Edit the beat gaps between hits, pick a sound, then play. Loop it and nudge the numbers to hear how timing alone changes the feel.</p>
+    <div class="global-controls">
+      <div class="tempo-row">
+        <span>Tempo</span>
+        <input id="tempo" type="range" min="60" max="160" value="100" />
+        <span id="tempoVal">100 BPM</span>
+      </div>
+      <label class="loop-toggle">
+        <input id="loop" type="checkbox" checked />
+        Loop
+      </label>
+    </div>
+    ${order.map(key => `
+      <div class="row" data-key="${key}">
+        <div class="row-head">
+          <button class="play-btn" data-key="${key}" aria-label="Play ${state[key].label}">
+            <svg viewBox="0 0 12 12"><polygon points="1,0 12,6 1,12" fill="${state[key].fill}"/></svg>
+          </button>
+          <span class="row-label">${state[key].label}</span>
+          <span class="row-desc">${state[key].desc}</span>
+          <select class="sound-select" data-key="${key}">
+            ${soundOptions.map(o => `<option value="${o.value}" ${o.value===state[key].sound?'selected':''}>${o.label}</option>`).join('')}
+          </select>
+        </div>
+        <div class="track" id="track-${key}"><div class="baseline"></div></div>
+        <div class="editor" id="editor-${key}"></div>
+      </div>
+    `).join('')}
+    <footer>IOIs are gaps between hits, in beats (quarter note = 1). Add/remove notes with the buttons, or type a new value directly. "Reset" restores that row's original timing.</footer>
+  `;
+
+  function renderEditor(key){
+    const editor = document.getElementById('editor-' + key);
+    const iois = state[key].iois;
+    editor.innerHTML = iois.map((v,i) => `
+      <div class="ioi-field">
+        <input type="number" step="0.1" min="0.1" value="${v}" data-key="${key}" data-idx="${i}" class="ioi-input" />
+        <button class="remove-note" data-key="${key}" data-idx="${i}" title="Remove note" ${iois.length<=2?'disabled style="opacity:0.25;cursor:default;"':''}>&times;</button>
+      </div>
+    `).join('') + `<button class="add-note" data-key="${key}" title="Add note">+</button>
+       <button class="reset-row" data-key="${key}">reset</button>`;
+
+    editor.querySelectorAll('.ioi-input').forEach(inp => {
+      inp.addEventListener('change', () => {
+        const k = inp.getAttribute('data-key');
+        const idx = parseInt(inp.getAttribute('data-idx'));
+        let val = parseFloat(inp.value);
+        if (isNaN(val) || val <= 0) val = 0.1;
+        state[k].iois[idx] = val;
+        layoutRow(k);
+      });
+    });
+    editor.querySelectorAll('.remove-note').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const k = btn.getAttribute('data-key');
+        const idx = parseInt(btn.getAttribute('data-idx'));
+        if (state[k].iois.length <= 2) return;
+        state[k].iois.splice(idx, 1);
+        renderEditor(k);
+        layoutRow(k);
+      });
+    });
+    editor.querySelector('.add-note').addEventListener('click', () => {
+      state[key].iois.push(0.5);
+      renderEditor(key);
+      layoutRow(key);
+    });
+    editor.querySelector('.reset-row').addEventListener('click', () => {
+      state[key].iois = [...defaults[key].iois];
+      renderEditor(key);
+      layoutRow(key);
+    });
+  }
+
+  function maxTotalBeats(){
+    let max = 0;
+    order.forEach(k => {
+      const total = state[k].iois.reduce((a,b)=>a+b,0);
+      if (total > max) max = total;
+    });
+    return Math.max(max, 1);
+  }
+
+  function layoutRow(key){
+    const track = document.getElementById('track-' + key);
+    track.querySelectorAll('.dot').forEach(d => d.remove());
+    const total = maxTotalBeats() * 1.05;
+    const w = track.clientWidth;
+    const iois = state[key].iois;
+    let t = 0;
+    const positions = [0];
+    for (let i = 0; i < iois.length - 1; i++) { t += iois[i]; positions.push(t); }
+    positions.forEach((pos, i) => {
+      const dot = document.createElement('div');
+      dot.className = 'dot';
+      dot.style.left = ((pos / total) * w) + 'px';
+      dot.style.background = state[key].fill;
+      dot.style.color = state[key].text;
+      dot.textContent = i + 1;
+      dot.id = 'dot-' + key + '-' + i;
+      track.appendChild(dot);
+    });
+  }
+
+  function layoutAll(){ order.forEach(layoutRow); }
+
+  order.forEach(renderEditor);
+  layoutAll();
+  window.addEventListener('resize', layoutAll);
+
+  root.querySelectorAll('.sound-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      state[sel.getAttribute('data-key')].sound = sel.value;
+    });
+  });
+
+  const tempoSlider = document.getElementById('tempo');
+  const tempoVal = document.getElementById('tempoVal');
+  tempoSlider.addEventListener('input', () => { tempoVal.textContent = tempoSlider.value + ' BPM'; });
+  const loopCheckbox = document.getElementById('loop');
+
+  // --- sound engine: three percussion voices ---
+  let voices = null;
+  function getVoices(){
+    if (!voices){
+      const wood = new Tone.MembraneSynth({
+        pitchDecay: 0.008,
+        octaves: 2,
+        envelope: { attack: 0.001, decay: 0.06, sustain: 0, release: 0.02 }
+      }).toDestination();
+      wood.volume.value = -8;
+
+      const kick = new Tone.MembraneSynth({
+        pitchDecay: 0.05,
+        octaves: 6,
+        envelope: { attack: 0.001, decay: 0.35, sustain: 0, release: 0.1 }
+      }).toDestination();
+      kick.volume.value = -4;
+
+      const shakerFilter = new Tone.Filter(6000, 'highpass').toDestination();
+      const shaker = new Tone.NoiseSynth({
+        noise: { type: 'white' },
+        envelope: { attack: 0.001, decay: 0.09, sustain: 0, release: 0.03 }
+      }).connect(shakerFilter);
+      shaker.volume.value = -10;
+
+      voices = { wood, kick, shaker };
+    }
+    return voices;
+  }
+
+  function hit(soundKey, time){
+    const v = getVoices();
+    if (soundKey === 'wood') v.wood.triggerAttackRelease('C6', '32n', time);
+    else if (soundKey === 'kick') v.kick.triggerAttackRelease('C1', '16n', time);
+    else if (soundKey === 'shaker') v.shaker.triggerAttackRelease('16n', time);
+  }
+
+  function stopRow(key){
+    if (playing[key]){
+      playing[key].stopped = true;
+      clearTimeout(playing[key].timer);
+      delete playing[key];
+    }
+    setBtnState(key, false);
+  }
+
+  function setBtnState(key, isPlaying){
+    const btn = root.querySelector('.play-btn[data-key="' + key + '"]');
+    const svg = btn.querySelector('svg');
+    if (isPlaying){
+      svg.innerHTML = `<rect x="1" y="1" width="4" height="10" fill="${state[key].fill}"/><rect x="7" y="1" width="4" height="10" fill="${state[key].fill}"/>`;
+    } else {
+      svg.innerHTML = `<polygon points="1,0 12,6 1,12" fill="${state[key].fill}"/>`;
+    }
+  }
+
+  async function playRow(key){
+    if (playing[key]) { stopRow(key); return; }
+    await Tone.start();
+    const rec = { stopped:false, timer:null };
+    playing[key] = rec;
+    setBtnState(key, true);
+
+    function cycle(){
+      if (rec.stopped) return;
+      const bpm = parseFloat(tempoSlider.value);
+      const beatSec = 60 / bpm;
+      const iois = state[key].iois;
+      const soundKey = state[key].sound;
+      const now = Tone.now() + 0.03;
+      let t = 0;
+      iois.forEach((ioi, i) => {
+        const fireTime = now + t * beatSec;
+        hit(soundKey, fireTime);
+        const delayMs = (t * beatSec) * 1000;
+        setTimeout(() => {
+          if (rec.stopped) return;
+          const dot = document.getElementById('dot-' + key + '-' + i);
+          if (!dot) return;
+          dot.classList.add('hit');
+          setTimeout(() => dot.classList.remove('hit'), 130);
+        }, delayMs);
+        t += ioi;
+      });
+      const totalSec = t * beatSec;
+      if (loopCheckbox.checked){
+        rec.timer = setTimeout(cycle, totalSec * 1000);
+      } else {
+        rec.timer = setTimeout(() => stopRow(key), totalSec * 1000 + 50);
+      }
+    }
+    cycle();
+  }
+
+  root.querySelectorAll('.play-btn').forEach(btn => {
+    btn.addEventListener('click', () => playRow(btn.getAttribute('data-key')));
+  });
+})();
+</script>
+</body>
+</html>
