@@ -1,6 +1,6 @@
 # Unit 2: Rhythm and Meter
 
-## Week 4 – Syncopation and Microtiming
+## Week 4 – Anticipatory Syncopation
 `Group 1`: The Weekend, "Blinding Lights"  
 `Group 2`: Olivia Dean, "Man I Need"  
 `Group 3`: Snow Patrol, "Chasing Cars"  
@@ -14,7 +14,8 @@
 `Group 4`: George Michael, "Faith"  
 `Group 5`: Ed Sheeran, "Shape of You"  
 
-## Week 6 – Metric Dissonance and Hypermeter
+## Week 6 – Microtiming and Groove
+[Companion Site](microtimingDeviations.html)
 Composition week
 
 ## Recommended Readings
